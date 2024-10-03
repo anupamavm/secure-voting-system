@@ -1,0 +1,38 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+logs/
+*.log
+logs/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment Variables
+.env
+
+# OS Files
+.DS_Store
+
+# IDE and Editor Files
+.idea/
+.vscode/
+*.swp
+
+# Coverage Directory
+coverage/
+
+# Build Directory
+dist/
+build/
+
+# Temporary Files
+tmp/
+temp/
+
+# RSA Keys (if stored locally for testing, do not expose private keys)
+*.pem
