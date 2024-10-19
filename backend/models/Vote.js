@@ -1,23 +1,20 @@
 const mongoose = require("mongoose");
 
-const voteSchema = new mongoose.Schema({
-	voterId: {
-		type: mongoose.Schema.Types.ObjectId,
+const VoteSchema = new mongoose.Schema({
+	voteEvent: {
+		type: mongoose.Schema.Types.ObjectId, // Reference to the voting event
+		ref: "VoteEvent",
+		required: true,
+	},
+	voter: {
+		type: mongoose.Schema.Types.ObjectId, // Reference to the user who voted
 		ref: "User",
 		required: true,
 	},
-	encryptedVote: {
-		type: String,
+	choice: {
+		type: String, // The option chosen by the user
 		required: true,
-	},
-	voteHash: {
-		type: String,
-		required: true,
-	},
-	timestamp: {
-		type: Date,
-		default: Date.now,
 	},
 });
 
-module.exports = mongoose.model("Vote", voteSchema);
+module.exports = mongoose.model("Vote", VoteSchema);

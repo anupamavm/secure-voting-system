@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 
-const userSchema = new mongoose.Schema({
+const UserSchema = new mongoose.Schema({
 	username: {
 		type: String,
 		required: true,
@@ -16,19 +16,28 @@ const userSchema = new mongoose.Schema({
 		type: String,
 		required: true,
 	},
+	twoFactorSecret: String, // Used for storing the secret for two-factor authentication
+	twoFactorEnabled: {
+		type: Boolean,
+		default: false,
+	},
+	role: {
+		type: String,
+		enum: ["user", "admin"], // User roles: 'user' and 'admin'
+		default: "user",
+	},
 });
 
-// Hash password before saving user
-userSchema.pre("save", async function (next) {
+// Pre-save hook to hash the password before saving
+UserSchema.pre("save", async function (next) {
 	if (!this.isModified("password")) return next();
-	const salt = await bcrypt.genSalt(10);
-	this.password = await bcrypt.hash(this.password, salt);
+	this.password = await bcrypt.hash(this.password, 10);
 	next();
 });
 
-// Match user entered password with hashed password
-userSchema.methods.matchPassword = async function (enteredPassword) {
-	return await bcrypt.compare(enteredPassword, this.password);
+// Method to compare entered password with stored hashed password
+UserSchema.methods.comparePassword = async function (password) {
+	return bcrypt.compare(password, this.password);
 };
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model("User", UserSchema);
