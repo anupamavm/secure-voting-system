@@ -49,6 +49,38 @@ exports.registerUser = async (req, res) => {
 	}
 };
 
+// Create a nodemailer transporter (use your email provider settings)
+const transporter = nodemailer.createTransport({
+	service: "Gmail", // Use your email service (Gmail, Outlook, etc.)
+	auth: {
+		user: process.env.EMAIL_USER, // Your email
+		pass: process.env.EMAIL_PASS, // Your email password or app password
+	},
+});
+
+// Function to generate a 6-digit 2FA code
+function generate2FACode() {
+	const code = Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit number
+	return code.toString();
+}
+
+// Send 2FA code to user
+async function send2FACode(userEmail, code) {
+	const mailOptions = {
+		from: process.env.EMAIL_USER,
+		to: userEmail,
+		subject: "Your 2FA Code",
+		text: `Your 2FA code is: ${code}. This code will expire in 5 minutes.`,
+	};
+
+	try {
+		await transporter.sendMail(mailOptions);
+		console.log("2FA code sent to email:", userEmail);
+	} catch (error) {
+		console.error("Error sending 2FA code:", error);
+	}
+}
+
 // Login user
 exports.loginUser = async (req, res) => {
 	try {
@@ -66,63 +98,74 @@ exports.loginUser = async (req, res) => {
 			return res.status(400).json({ message: "Invalid credentials" });
 		}
 
-		// Check if two-factor authentication is enabled
-		if (user.twoFactorEnabled) {
-			return res
-				.status(200)
-				.json({
-					message: "2FA required",
-					twoFactorEnabled: true,
-					userId: user._id,
-				});
+		// Generate a 2FA code
+		const twoFACode = generate2FACode();
+
+		// Save the 2FA code in the user's record (or temporary storage)
+		user.twoFACode = twoFACode;
+		user.twoFACodeExpires = Date.now() + 300000; // Code expires in 5 minutes
+		await user.save();
+
+		// Send the 2FA code to the user's email
+		await send2FACode(user.email, twoFACode);
+
+		// Prompt the user to enter their 2FA code
+		res.status(200).json({
+			message: "2FA code sent to your email. Please enter the code.",
+			twoFactorEnabled: true,
+			userId: user._id,
+		});
+	} catch (error) {
+		console.error("Login error:", error);
+		res.status(500).json({ message: "Server error", error: error.message });
+	}
+};
+
+exports.verifyTwoFactorEmailCode = async (req, res) => {
+	console.log("Request received in verifyTwoFactorEmailCode");
+	console.log("Request body:", req.body);
+
+	try {
+		const { userId, code } = req.body;
+
+		console.log("Request body:", req.body);
+
+		// Check if userId and code are provided
+		if (!userId || !code) {
+			console.log("Missing userId or code");
+			return res.status(400).json({ message: "userId and code are required" });
 		}
 
-		// Generate JWT token
+		// Find the user by ID
+		const user = await User.findById(userId);
+		if (!user) {
+			console.log("Invalid user, userId not found:", userId);
+			return res.status(400).json({ message: "Invalid user" });
+		}
+
+		// Check if the code matches and is not expired
+		if (user.twoFACode !== code || user.twoFACodeExpires < Date.now()) {
+			console.log("Invalid or expired 2FA code");
+			return res.status(400).json({ message: "Invalid or expired 2FA code" });
+		}
+
+		// Generate a JWT token after successful 2FA verification
 		const token = jwt.sign(
 			{ id: user._id, role: user.role },
 			process.env.JWT_SECRET,
 			{ expiresIn: "1h" }
 		);
 
-		res.status(200).json({ message: "Logged in successfully", token });
+		// Clear the 2FA code after successful verification
+		user.twoFACode = undefined;
+		user.twoFACodeExpires = undefined;
+		await user.save();
+
+		console.log("2FA verified, token generated:", token);
+
+		res.status(200).json({ message: "2FA verified", token });
 	} catch (error) {
-		console.error(error);
-		res.status(500).json({ message: "Server error" });
-	}
-};
-
-// Verify 2FA token
-exports.verifyTwoFactor = async (req, res) => {
-	try {
-		const { userId, token } = req.body;
-
-		// Find the user
-		const user = await User.findById(userId);
-		if (!user) {
-			return res.status(400).json({ message: "Invalid user" });
-		}
-
-		// Verify the 2FA token
-		const verified = speakeasy.totp.verify({
-			secret: user.twoFactorSecret,
-			encoding: "base32",
-			token,
-		});
-
-		if (!verified) {
-			return res.status(400).json({ message: "Invalid 2FA token" });
-		}
-
-		// Generate JWT token
-		const jwtToken = jwt.sign(
-			{ id: user._id, role: user.role },
-			process.env.JWT_SECRET,
-			{ expiresIn: "1h" }
-		);
-
-		res.status(200).json({ message: "2FA verified", token: jwtToken });
-	} catch (error) {
-		console.error(error);
+		console.error("Error in verifyTwoFactorEmailCode:", error);
 		res.status(500).json({ message: "Server error" });
 	}
 };

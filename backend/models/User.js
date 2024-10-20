@@ -16,11 +16,13 @@ const UserSchema = new mongoose.Schema({
 		type: String,
 		required: true,
 	},
-	twoFactorSecret: String, // Used for storing the secret for two-factor authentication
+	twoFactorSecret: String, // Used for storing the secret for two-factor authentication (if using app-based 2FA)
 	twoFactorEnabled: {
 		type: Boolean,
 		default: false,
 	},
+	twoFACode: String, // Used for storing the email-based 2FA code
+	twoFACodeExpires: Date, // Used to store the expiration time for the 2FA code
 	role: {
 		type: String,
 		enum: ["user", "admin"], // User roles: 'user' and 'admin'

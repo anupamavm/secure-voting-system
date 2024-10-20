@@ -9,6 +9,6 @@ router.post("/register", authController.registerUser);
 router.post("/login", authController.loginUser);
 
 // Route for verifying two-factor authentication
-router.post("/verify-2fa", authController.verifyTwoFactor);
+router.post("/verify-2fa", authController.verifyTwoFactorEmailCode);
 
 module.exports = router;

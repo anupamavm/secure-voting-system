@@ -1,8 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const { createVoteEvent } = require("../controllers/adminController");
+const adminController = require("../controllers/adminController");
+const { authenticate, isAdmin } = require("../middleware/authMiddleware");
 
-// Admin creates a new vote event
-router.post("/create-event", createVoteEvent);
+// Route for creating a new vote event (protected, only accessible by admin)
+router.post(
+	"/create-vote-event",
+	authenticate,
+	isAdmin,
+	adminController.createVoteEvent
+);
 
 module.exports = router;
