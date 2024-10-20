@@ -1,29 +1,35 @@
 const mongoose = require("mongoose");
 
 const VoteEventSchema = new mongoose.Schema({
-	title: {
+	name: {
 		type: String,
 		required: true,
 	},
 	description: {
 		type: String,
 	},
-	options: {
-		type: [String], // Array of voting options
+	options: [
+		{
+			optionName: { type: String, required: true },
+			votes: { type: Number, default: 0 }, // To count votes for each option
+		},
+	],
+	createdBy: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: "User", // Reference to the admin who created the event
 		required: true,
 	},
 	startTime: {
-		type: Date, // Start time of the voting event
+		type: Date,
 		required: true,
 	},
 	endTime: {
-		type: Date, // End time of the voting event
+		type: Date,
 		required: true,
 	},
-	createdBy: {
-		type: mongoose.Schema.Types.ObjectId, // Reference to the admin who created the event
-		ref: "User",
-		required: true,
+	isActive: {
+		type: Boolean,
+		default: true,
 	},
 });
 

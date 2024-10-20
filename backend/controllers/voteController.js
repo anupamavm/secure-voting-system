@@ -4,44 +4,37 @@ const VoteEvent = require("../models/VoteEvent");
 // Cast a vote
 exports.castVote = async (req, res) => {
 	try {
-		const { eventId } = req.params;
-		const { choice } = req.body;
-		const userId = req.user.id;
+		const { eventId, optionName } = req.body;
 
-		// Find the voting event
+		// Find the event
 		const voteEvent = await VoteEvent.findById(eventId);
+
 		if (!voteEvent) {
 			return res.status(404).json({ message: "Vote event not found" });
 		}
 
-		// Check if the voting event is still active
+		// Check if the voting period is active
 		const currentTime = new Date();
 		if (currentTime < voteEvent.startTime || currentTime > voteEvent.endTime) {
-			return res.status(400).json({ message: "Voting is not active" });
+			return res.status(400).json({ message: "Voting period is not active" });
 		}
 
-		// Ensure the user has not already voted in this event
-		const existingVote = await Vote.findOne({
-			voteEvent: eventId,
-			voter: userId,
-		});
-		if (existingVote) {
-			return res.status(400).json({ message: "You have already voted" });
+		// Find the option and increment the vote count
+		const option = voteEvent.options.find(
+			(opt) => opt.optionName === optionName
+		);
+		if (!option) {
+			return res.status(400).json({ message: "Invalid voting option" });
 		}
 
-		// Cast the vote
-		const vote = new Vote({
-			voteEvent: eventId,
-			voter: userId,
-			choice,
-		});
+		option.votes += 1;
 
-		// Save the vote
-		await vote.save();
+		// Save the updated vote event
+		await voteEvent.save();
 
-		res.status(201).json({ message: "Vote cast successfully" });
+		res.status(200).json({ message: "Vote cast successfully", voteEvent });
 	} catch (error) {
-		console.error(error);
+		console.error("Error casting vote:", error);
 		res.status(500).json({ message: "Server error" });
 	}
 };
