@@ -1,20 +1,13 @@
 const mongoose = require("mongoose");
 
-const VoteSchema = new mongoose.Schema({
+const voteSchema = new mongoose.Schema({
 	voteEvent: {
-		type: mongoose.Schema.Types.ObjectId, // Reference to the voting event
+		type: mongoose.Schema.Types.ObjectId,
 		ref: "VoteEvent",
 		required: true,
 	},
-	voter: {
-		type: mongoose.Schema.Types.ObjectId, // Reference to the user who voted
-		ref: "User",
-		required: true,
-	},
-	choice: {
-		type: String, // The option chosen by the user
-		required: true,
-	},
+	user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Make sure this line exists
+	choice: { type: Number, required: true },
 });
 
-module.exports = mongoose.model("Vote", VoteSchema);
+module.exports = mongoose.model("Vote", voteSchema);

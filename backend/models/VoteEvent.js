@@ -14,6 +14,7 @@ const VoteEventSchema = new mongoose.Schema({
 			votes: { type: Number, default: 0 }, // To count votes for each option
 		},
 	],
+
 	createdBy: {
 		type: mongoose.Schema.Types.ObjectId,
 		ref: "User", // Reference to the admin who created the event
