@@ -1,14 +1,36 @@
 const Vote = require("../models/Vote");
 const VoteEvent = require("../models/VoteEvent");
 
+// Get all vote events
+exports.getAllVoteEvents = async (req, res) => {
+	try {
+		// Fetch all vote events from the database
+		const voteEvents = await VoteEvent.find();
+
+		// Return the list of vote events
+		res
+			.status(200)
+			.json({ message: "Vote events retrieved successfully", voteEvents });
+	} catch (error) {
+		console.error("Error retrieving vote events:", error);
+		res.status(500).json({ message: "Server error" });
+	}
+};
+
 // Cast a vote
 exports.castVote = async (req, res) => {
 	try {
-		const { eventId, optionName } = req.body;
+		const { eventId, optionId } = req.body; // Change to optionId
+
+		// Ensure only users (non-admins) can vote
+		if (req.user.role === "admin") {
+			return res
+				.status(403)
+				.json({ message: "Admins are not allowed to vote" });
+		}
 
 		// Find the event
 		const voteEvent = await VoteEvent.findById(eventId);
-
 		if (!voteEvent) {
 			return res.status(404).json({ message: "Vote event not found" });
 		}
@@ -19,9 +41,9 @@ exports.castVote = async (req, res) => {
 			return res.status(400).json({ message: "Voting period is not active" });
 		}
 
-		// Find the option and increment the vote count
+		// Find the option by ID and increment the vote count
 		const option = voteEvent.options.find(
-			(opt) => opt.optionName === optionName
+			(opt) => opt._id.toString() === optionId
 		);
 		if (!option) {
 			return res.status(400).json({ message: "Invalid voting option" });

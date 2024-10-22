@@ -11,14 +11,36 @@ exports.createVoteEvent = async (req, res) => {
 			return res.status(403).json({ message: "Access denied. Admins only." });
 		}
 
+		// Check if startTime and endTime are in the future
+		const currentTime = new Date();
+		const start = new Date(startTime);
+		const end = new Date(endTime);
+
+		// Validate that startTime and endTime are in the future
+		if (start <= currentTime) {
+			return res
+				.status(400)
+				.json({ message: "Start time must be in the future." });
+		}
+		if (end <= currentTime) {
+			return res
+				.status(400)
+				.json({ message: "End time must be in the future." });
+		}
+		if (end <= start) {
+			return res
+				.status(400)
+				.json({ message: "End time must be after the start time." });
+		}
+
 		// Create a new vote event
 		const newVoteEvent = new VoteEvent({
 			name,
 			description,
 			options: options.map((opt) => ({ optionName: opt })),
 			createdBy: req.user.id, // Admin's ID
-			startTime,
-			endTime,
+			startTime: start,
+			endTime: end,
 		});
 
 		// Save the vote event
