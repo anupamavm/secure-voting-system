@@ -8,7 +8,15 @@ dotenv.config();
 // Initialize the app
 const app = express();
 
-app.use(cors());
+app.use((req, res, next) => {
+	res.header("Access-Control-Allow-Origin", "*");
+	res.header(
+		"Access-Control-Allow-Headers",
+		"Origin, X-Requested-With, Content-Type, Accept"
+	);
+	res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+	next();
+});
 // Middleware
 app.use(express.json());
 
@@ -34,30 +42,3 @@ mongoose
 // Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-// Nodemailer test
-
-// var nodemailer = require("nodemailer");
-
-// var transporter = nodemailer.createTransport({
-// 	service: "gmail",
-// 	auth: {
-// 		user: "thenunof@gmail.com",
-// 		pass: "eqdrfedeseoxvocq",
-// 	},
-// });
-
-// var mailOptions = {
-// 	from: "thenunof@gmail.com",
-// 	to: "anupamamorapitiya97@gmail.com",
-// 	subject: "Sending Email using Node.js",
-// 	text: "That was easy!",
-// };
-
-// transporter.sendMail(mailOptions, function (error, info) {
-// 	if (error) {
-// 		console.log(error);
-// 	} else {
-// 		console.log("Email sent: " + info.response);
-// 	}
-// });

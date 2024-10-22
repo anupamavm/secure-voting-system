@@ -20,7 +20,7 @@ exports.getAllVoteEvents = async (req, res) => {
 // Cast a vote
 exports.castVote = async (req, res) => {
 	try {
-		const { eventId, optionId } = req.body; // Change to optionId
+		const { eventId, optionIndex } = req.body; // Change to optionIndex
 
 		// Ensure only users (non-admins) can vote
 		if (req.user.role === "admin") {
@@ -41,14 +41,13 @@ exports.castVote = async (req, res) => {
 			return res.status(400).json({ message: "Voting period is not active" });
 		}
 
-		// Find the option by ID and increment the vote count
-		const option = voteEvent.options.find(
-			(opt) => opt._id.toString() === optionId
-		);
-		if (!option) {
-			return res.status(400).json({ message: "Invalid voting option" });
+		// Ensure the optionIndex is valid
+		if (optionIndex < 0 || optionIndex >= voteEvent.options.length) {
+			return res.status(400).json({ message: "Invalid voting option index" });
 		}
 
+		// Find the option by index and increment the vote count
+		const option = voteEvent.options[optionIndex];
 		option.votes += 1;
 
 		// Save the updated vote event
