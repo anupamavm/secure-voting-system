@@ -2,7 +2,6 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const speakeasy = require("speakeasy"); // For 2FA
-const qrcode = require("qrcode"); // For generating 2FA QR codes
 const nodemailer = require("nodemailer"); // For sending emails
 
 // Register a new user
@@ -33,28 +32,22 @@ exports.registerUser = async (req, res) => {
 		newUser.twoFactorSecret = secret.base32;
 		newUser.twoFactorEnabled = true;
 
-		// Send QR code for 2FA setup
-		const qrCodeURL = await qrcode.toDataURL(secret.otpauth_url);
-
 		// Save the updated user
 		await newUser.save();
 
-		// Return success and the QR code to the client
-		res
-			.status(201)
-			.json({ message: "User registered successfully", qrCodeURL });
+		res.status(201).json({ message: "User registered successfully" });
 	} catch (error) {
 		console.error(error);
 		res.status(500).json({ message: "Server error" });
 	}
 };
 
-// Create a nodemailer transporter (use your email provider settings)
+// Create a nodemailer transporter
 const transporter = nodemailer.createTransport({
-	service: "Gmail", // Use your email service (Gmail, Outlook, etc.)
+	service: "Gmail",
 	auth: {
-		user: process.env.EMAIL_USER, // Your email
-		pass: process.env.EMAIL_PASS, // Your email password or app password
+		user: process.env.EMAIL_USER,
+		pass: process.env.EMAIL_PASS,
 	},
 });
 
@@ -101,7 +94,6 @@ exports.loginUser = async (req, res) => {
 		// Generate a 2FA code
 		const twoFACode = generate2FACode();
 
-		// Save the 2FA code in the user's record (or temporary storage)
 		user.twoFACode = twoFACode;
 		user.twoFACodeExpires = Date.now() + 300000; // Code expires in 5 minutes
 		await user.save();

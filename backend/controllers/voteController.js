@@ -114,13 +114,13 @@ exports.viewResults = async (req, res) => {
 
 			// Ensure decryptedVotes is a number
 			const parsedVotes = parseInt(decryptedVotes, 10);
-			results[option.optionName] = isNaN(parsedVotes) ? 0 : parsedVotes; // Default to 0 if NaN
+			results[option.optionName] = isNaN(parsedVotes) ? 0 : parsedVotes;
 		});
 
 		res.status(200).json({
 			message: "Vote results",
-			eventId: voteEvent._id, // Include event ID
-			eventName: voteEvent.eventName, // Include event name
+			eventId: voteEvent._id,
+			eventName: voteEvent.eventName,
 			results: results,
 		});
 	} catch (error) {

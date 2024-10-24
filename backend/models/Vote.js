@@ -6,7 +6,7 @@ const voteSchema = new mongoose.Schema({
 		ref: "VoteEvent",
 		required: true,
 	},
-	user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Make sure this line exists
+	user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 });
 
 module.exports = mongoose.model("Vote", voteSchema);
