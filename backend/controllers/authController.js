@@ -89,13 +89,13 @@ exports.loginUser = async (req, res) => {
 		// Find user by email
 		const user = await User.findOne({ email });
 		if (!user) {
-			return res.status(400).json({ message: "Invalid credentials" });
+			return res.status(400).json({ message: "Invalid email credentials" });
 		}
 
 		// Check if the password is correct
 		const isMatch = await user.comparePassword(password);
 		if (!isMatch) {
-			return res.status(400).json({ message: "Invalid credentials" });
+			return res.status(400).json({ message: "Invalid password credentials" });
 		}
 
 		// Generate a 2FA code

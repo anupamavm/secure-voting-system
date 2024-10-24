@@ -1,5 +1,6 @@
 const Vote = require("../models/Vote");
 const VoteEvent = require("../models/VoteEvent");
+const { encrypt, decrypt } = require("./encryption"); // Assuming encrypt returns { iv, encryptedData }
 
 // Get all vote events
 exports.getAllVoteEvents = async (req, res) => {
@@ -8,9 +9,10 @@ exports.getAllVoteEvents = async (req, res) => {
 		const voteEvents = await VoteEvent.find();
 
 		// Return the list of vote events
-		res
-			.status(200)
-			.json({ message: "Vote events retrieved successfully", voteEvents });
+		res.status(200).json({
+			message: "Vote events retrieved successfully",
+			voteEvents,
+		});
 	} catch (error) {
 		console.error("Error retrieving vote events:", error);
 		res.status(500).json({ message: "Server error" });
@@ -18,12 +20,11 @@ exports.getAllVoteEvents = async (req, res) => {
 };
 
 exports.castVote = async (req, res) => {
-	console.log("User Info:", req.user); // Confirm user details
-
 	try {
 		const { optionIndex } = req.body;
-		const eventId = req.params.eventId.trim(); // Ensure eventId is trimmed
+		const eventId = req.params.eventId.trim();
 
+		// Prevent admin from voting
 		if (req.user.role === "admin") {
 			return res
 				.status(403)
@@ -36,11 +37,6 @@ exports.castVote = async (req, res) => {
 		}
 
 		const currentTime = new Date();
-		console.log("Current Time:", currentTime);
-		console.log("Voting Start Time:", voteEvent.startTime);
-		console.log("Voting End Time:", voteEvent.endTime);
-
-		// Check if the voting period is active
 		if (currentTime < voteEvent.startTime || currentTime > voteEvent.endTime) {
 			return res.status(400).json({ message: "Voting period is not active" });
 		}
@@ -49,15 +45,13 @@ exports.castVote = async (req, res) => {
 			return res.status(400).json({ message: "Invalid voting option index" });
 		}
 
-		const userId = req.user.id; // Change this line to access `id` instead of `_id`
-		console.log("User ID:", userId); // Log the user ID
+		const userId = req.user.id;
 
 		// Check if the user has already voted
 		const existingVote = await Vote.findOne({
 			voteEvent: eventId,
-			user: userId, // Now should correctly reference the user ID
+			user: userId,
 		});
-
 		if (existingVote) {
 			return res
 				.status(400)
@@ -67,16 +61,24 @@ exports.castVote = async (req, res) => {
 		// Create a new vote
 		const newVote = new Vote({
 			voteEvent: eventId,
-			user: userId, // Should now correctly reference the user ID
-			choice: optionIndex,
+			user: userId,
 		});
 
-		console.log("New Vote Object:", newVote); // Log the new vote object
+		await newVote.save();
 
-		await newVote.save(); // Save the new vote
+		// Decrypt the current votes for the selected option
+		const { iv, encryptedData } = voteEvent.options[optionIndex].votes;
+		let currentVotes = decrypt({ iv, encryptedData });
 
-		// Increment the vote count for the selected option
-		voteEvent.options[optionIndex].votes += 1;
+		// Ensure currentVotes is a number
+		currentVotes = parseInt(currentVotes, 10);
+		if (isNaN(currentVotes)) currentVotes = 0; // Default to 0 if NaN
+
+		// Increment the vote count
+		const updatedVotes = encrypt((currentVotes + 1).toString()); // Encrypt the updated votes
+
+		// Update the vote event with the new vote count
+		voteEvent.options[optionIndex].votes = updatedVotes;
 		await voteEvent.save();
 
 		res.status(200).json({ message: "Vote cast successfully", voteEvent });
@@ -88,24 +90,37 @@ exports.castVote = async (req, res) => {
 
 exports.viewResults = async (req, res) => {
 	try {
-		const eventId = req.params.eventId.trim(); // Ensure eventId is trimmed
+		const eventId = req.params.eventId.trim();
 
-		// Find the vote event by ID
 		const voteEvent = await VoteEvent.findById(eventId);
 		if (!voteEvent) {
 			return res.status(404).json({ message: "Vote event not found" });
 		}
 
-		// Prepare the results mapping
+		// Check if the event has ended by comparing the current time with the endTime
+		const currentTime = new Date();
+		if (currentTime < voteEvent.endTime) {
+			return res.status(403).json({
+				message: "Results are not available yet. The event is still ongoing.",
+			});
+		}
+
 		const results = {};
 
-		// Map the votes to option names
-		voteEvent.options.forEach((option, index) => {
-			results[option.optionName] = option.votes; // Use option name as key and votes as value
+		// Decrypt the votes for each option
+		voteEvent.options.forEach((option) => {
+			const { iv, encryptedData } = option.votes;
+			const decryptedVotes = decrypt({ iv, encryptedData });
+
+			// Ensure decryptedVotes is a number
+			const parsedVotes = parseInt(decryptedVotes, 10);
+			results[option.optionName] = isNaN(parsedVotes) ? 0 : parsedVotes; // Default to 0 if NaN
 		});
 
 		res.status(200).json({
 			message: "Vote results",
+			eventId: voteEvent._id, // Include event ID
+			eventName: voteEvent.eventName, // Include event name
 			results: results,
 		});
 	} catch (error) {

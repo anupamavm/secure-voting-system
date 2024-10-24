@@ -1,5 +1,6 @@
 const VoteEvent = require("../models/VoteEvent");
 const User = require("../models/User");
+const { encrypt } = require("./encryption"); // Import your encryption functions
 
 // Create a new vote event (admin only)
 exports.createVoteEvent = async (req, res) => {
@@ -37,7 +38,10 @@ exports.createVoteEvent = async (req, res) => {
 		const newVoteEvent = new VoteEvent({
 			name,
 			description,
-			options: options.map((opt) => ({ optionName: opt })),
+			options: options.map((opt) => ({
+				optionName: opt,
+				votes: encrypt("0"), // Encrypt the initial vote count as "0"
+			})),
 			createdBy: req.user.id, // Admin's ID
 			startTime: start,
 			endTime: end,

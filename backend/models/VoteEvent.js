@@ -11,7 +11,10 @@ const VoteEventSchema = new mongoose.Schema({
 	options: [
 		{
 			optionName: { type: String, required: true },
-			votes: { type: Number, default: 0 }, // To count votes for each option
+			votes: {
+				iv: { type: String, required: true }, // Store IV as a separate string
+				encryptedData: { type: String, required: true }, // Store encrypted vote count as a separate string
+			},
 		},
 	],
 
